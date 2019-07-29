@@ -18,7 +18,7 @@ import numpy
 
 
 df = pd.read_csv('kc_house_data.csv')
-df  = df.sample(1000)
+df  = df.sample(10000)
 df.head()
 
 
