@@ -8,39 +8,27 @@ import statistics
 import numpy
 
 
-# In[51]:
+def get_neighbors_dict(df):
+    distance_dict1 = {}
+    for i in df.index:
+        for j in df.index:
+            distance = math.sqrt(math.pow(df.iloc[i]['lat']-df.iloc[j]['lat'],2)+math.pow(df.iloc[i]['long']-df.iloc[j]['long'],2))
+            if 0 < distance < 0.3:
+                distance_dict1[(i, j)] = distance
+    return distance_dict1
 
 
-df = pd.read_csv('kc_house_data.csv')
-df  = df.sample(10000)
-df.head()
+def build_potentials(neighbors_dict, df):
+    couple_dict = {}
+    for couple in neighbors_dict:
+        potential_dict = {}
+        for i in range(5):
+            for j in range(5):
+                potential_dict[(i, j)] = df.iloc[couple[0]][i]*df.iloc[couple[1]][j]*((5-(abs(i-j)))/5)
+        couple_dict[couple] = potential_dict
+    return couple_dict
 
 
-# In[52]:
 
 
-distance_dict1 = {}
-for i in range(len(df)):
-    for j in range (i+1,len(df)):
-        distance = math.sqrt(math.pow(df.iloc[i]['lat']-df.iloc[j]['lat'],2)+math.pow(df.iloc[i]['long']-df.iloc[j]['long'],2))
-        if distance < 0.012:
-            distance_dict1[(i,j)]  = distance
-
-
-# In[53]:
-
-
-distance_dict1
-
-
-# In[58]:
-
-
-numpy.quantile(l,0.005)
-
-
-# In[54]:
-
-
-len(distance_dict1)
-
+#numpy.quantile(l,0.005)

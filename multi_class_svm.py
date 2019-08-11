@@ -3,6 +3,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler
+import mrf
 """
 #removed_features = ['date', 'id']
 # year built to age
@@ -43,7 +44,7 @@ def prepare_for_model(df):
 
 def data_preprocessing():
     update_df = pd.read_csv('kc_house_data.csv')
-    update_df = update_df.sample(1000)
+    update_df = update_df.sample(20)
     update_df['yr_built'] = update_df['yr_built'].apply(lambda x: 2015-x)
     update_df['yr_renovated'] = update_df['yr_renovated'].apply(year_to_bin)
     update_df = pd.get_dummies(update_df,columns=['zipcode'])
@@ -85,7 +86,11 @@ def main():
     all_data = pd.concat([x_test_with_probs,x_train_with_probs], axis=0)
     columns_for_mrf = ['long','lat',0,1,2,3,4]
     all_data = all_data[columns_for_mrf]
-    print (X_test.head())
+    all_data['old_index'] = all_data.index
+    all_data.index = range(len(all_data))
+    neigh_dict = mrf.get_neighbors_dict(all_data)
+    potentials = mrf.build_potentials(neigh_dict, all_data)
+    print(potentials)
 
 
 if __name__ == '__main__':
