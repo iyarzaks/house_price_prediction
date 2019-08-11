@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[50]:
-
-
 
 import pandas as pd
 from sklearn.metrics import confusion_matrix 
