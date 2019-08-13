@@ -90,7 +90,8 @@ def main():
     all_data.index = range(len(all_data))
     neigh_dict = mrf.get_neighbors_dict(all_data)
     potentials = mrf.build_potentials(neigh_dict, all_data)
-    print(potentials)
+    print(potentials[(0,1)])
+    print (potentials.keys())
 
 
 if __name__ == '__main__':
