@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler
 import mrf
+import pickle
 """
 #removed_features = ['date', 'id']
 # year built to age
@@ -44,7 +45,7 @@ def prepare_for_model(df):
 
 def data_preprocessing():
     update_df = pd.read_csv('kc_house_data.csv')
-    update_df = update_df.sample(20)
+    update_df = update_df.sample(1000)
     update_df['yr_built'] = update_df['yr_built'].apply(lambda x: 2015-x)
     update_df['yr_renovated'] = update_df['yr_renovated'].apply(year_to_bin)
     update_df = pd.get_dummies(update_df,columns=['zipcode'])
@@ -73,7 +74,17 @@ def change_train_to_class_df(y_train):
     return y_train_df
 
 
-def main():
+def write_to_pkl(var, file_name):
+    with open(file_name, 'wb') as file:
+        pickle.dump(var, file)
+
+
+def read_from_pkl(file_name):
+    with open(file_name, 'rb') as file:
+        return pickle.load(file)
+
+
+def create_potentials():
     X_train, X_test, y_train, y_test = data_preprocessing()
     X_train_for_model = prepare_for_model(X_train)
     svm_model_linear = SVC(kernel='linear', C=1 ,probability=True).fit(X_train_for_model, y_train)
@@ -90,8 +101,12 @@ def main():
     all_data.index = range(len(all_data))
     neigh_dict = mrf.get_neighbors_dict(all_data)
     potentials = mrf.build_potentials(neigh_dict, all_data)
-    print(potentials[(0,1)])
-    print (potentials.keys())
+    write_to_pkl(potentials, 'potentials_dict.pkl')
+    write_to_pkl(all_data, 'all_data.pkl')
+
+
+def main():
+    create_potentials()
 
 
 if __name__ == '__main__':
