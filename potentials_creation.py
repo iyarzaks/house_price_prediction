@@ -5,6 +5,7 @@ from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler
 import mrf
 import pickle
+import numpy as np
 """
 #removed_features = ['date', 'id']
 # year built to age
@@ -107,6 +108,8 @@ def create_potentials():
 
 def main():
     create_potentials()
+
+
 
 
 if __name__ == '__main__':
