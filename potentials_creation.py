@@ -45,7 +45,7 @@ def prepare_for_model(df):
 
 def data_preprocessing():
     update_df = pd.read_csv('kc_house_data.csv')
-    update_df = update_df.sample(1000)
+    # update_df = update_df.sample(1000)
     update_df['yr_built'] = update_df['yr_built'].apply(lambda x: 2015-x)
     update_df['yr_renovated'] = update_df['yr_renovated'].apply(year_to_bin)
     update_df = pd.get_dummies(update_df,columns=['zipcode'])
@@ -101,8 +101,8 @@ def create_potentials():
     all_data.index = range(len(all_data))
     neigh_dict = mrf.get_neighbors_dict(all_data)
     potentials = mrf.build_potentials(neigh_dict, all_data)
-    write_to_pkl(potentials, 'potentials_dict.pkl')
-    write_to_pkl(all_data, 'all_data.pkl')
+    write_to_pkl(potentials, 'potentials_dict_all_nodes.pkl')
+    write_to_pkl(all_data, 'single_potentials_all_nodes.pkl')
 
 
 def main():
