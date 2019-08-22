@@ -1,5 +1,6 @@
 from potentials_creation import read_from_pkl
 import numpy as np
+import pandas as pd
 
 
 def find_common(couple1, couple2):
@@ -14,11 +15,14 @@ def find_common(couple1, couple2):
 
 
 class Node:
-    def __init__(self, couple, potential):
+    def __init__(self, couple, potential, unobserved_size):
+        self.unobserved_size = unobserved_size
         self.couple = couple
         self.potential = potential
         self.messages_on_first = {}
         self.messages_on_second = {}
+        self.final_belief = np.zeros((5, 5))
+        self.final_return_values = {}
 
     def dis_of_massages(self):
         distance = 0
@@ -36,6 +40,27 @@ class Node:
             self.messages_on_first[m]['old'] = self.messages_on_first[m]['new']
         for m in self.messages_on_second:
             self.messages_on_second[m]['old'] = self.messages_on_second[m]['new']
+
+    def update_belief(self):
+        delta_vector_first = np.ones(5)
+        delta_vector_second = np.ones(5)
+        for sender, massage in self.messages_on_second.items():
+            delta_vector_first = np.multiply(delta_vector_first, massage['old'])
+        delta_vector_first = delta_vector_first / delta_vector_first.sum(axis=0, keepdims=1)
+        if self.couple[1] < self.unobserved_size:
+            for sender, massage in self.messages_on_first.items():
+                delta_vector_second = np.multiply(delta_vector_second, massage['old'])
+        else:
+            delta_vector_second = self.potential.to_numpy()[0, :]
+        delta_vector_second = delta_vector_second / delta_vector_second.sum(axis=0, keepdims=1)
+        raw_vector = np.array([delta_vector_second])
+        column_vector = np.reshape(np.array([delta_vector_first]), (5, 1))
+        d = np.dot(self.potential.to_numpy(), column_vector)
+        self.final_belief = np.dot(d, raw_vector)
+        self.final_belief = self.final_belief / self.final_belief.sum(keepdims=1)
+        for i, house in enumerate(self.couple):
+            self.final_return_values[house] = np.sum(self.final_belief, axis=1-i)
+            self.final_return_values[house] = self.final_return_values[house]/self.final_belief.sum(keepdims=1)
 
     def initialize(self, neighbors_list):
         house1 = self.couple[0]
@@ -78,10 +103,11 @@ class FactorGraph:
             self.send_messages()
             self.check_convergence()
             self.update_old()
-        return
         self.update_belief()
 
-
+    def update_belief(self):
+        for couple in self.nodes:
+            self.nodes[couple].update_belief()
 
     def update_old(self):
         for couple in self.nodes:
@@ -167,7 +193,7 @@ def main():
     for couple in couple_potentials:
         if couple[0] >= unobserved_size:
             break
-        new_node = Node(couple, couple_potentials[couple])
+        new_node = Node(couple, couple_potentials[couple] , unobserved_size)
         nodes_dict[couple] = new_node
     neighbors_dict = {}
     for couple in couple_potentials:
@@ -176,6 +202,7 @@ def main():
         neighbors_dict[couple] = find_neighbors(couple, couple_potentials, unobserved_size)
     factor_graph = FactorGraph(nodes_dict, neighbors_dict)
     factor_graph.belief_propagation()
+    print(factor_graph)
 
 if __name__ == '__main__':
     main()

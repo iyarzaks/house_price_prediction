@@ -107,7 +107,12 @@ def create_potentials():
 
 
 def main():
-    create_potentials()
+    #create_potentials()
+    a = np.array([[1,2]])
+    b = a.transpose()
+    print (a.shape, b.shape)
+    c = np.dot(b,a)
+    print (c)
 
 
 
