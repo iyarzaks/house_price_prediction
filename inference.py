@@ -1,4 +1,4 @@
-from potentials_creation import read_from_pkl
+from potentials_creation import read_from_pkl,print_results
 import numpy as np
 import pandas as pd
 
@@ -117,6 +117,27 @@ class FactorGraph:
         for couple in self.nodes:
             self.pass_messages_to_neigh(self.nodes[couple])
 
+    def inference_values(self, unobserved_size, single_potentials_before_belief):
+        rows = []
+        for i, house in single_potentials_before_belief.iterrows():
+            dict_to_fill = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
+            if i >= unobserved_size:
+                break
+            for couple in self.nodes:
+                if i in couple:
+                    dict_to_fill_vec = self.nodes[couple].final_return_values[i][0]
+                    for key, value in zip(dict_to_fill.keys(), dict_to_fill_vec):
+                        dict_to_fill[key] = value
+            rows.append(dict_to_fill)
+        result_of_bp = pd.DataFrame(rows)
+        return result_of_bp
+
+
+
+
+
+
+
     def pass_messages_to_neigh(self, sender_node):
         delta_vector_first = np.ones(5)
         delta_vector_second = np.ones(5)
@@ -186,9 +207,9 @@ def find_neighbors(couple, couple_potentials, unobserved_size):
 
 
 def main():
-    all_single_potentials = read_from_pkl("all_data.pkl")
+    all_single_potentials = read_from_pkl("single_potentials_all_nodes.pkl")
     unobserved_size = 250  ## to change
-    couple_potentials = read_from_pkl("potentials_dict.pkl")
+    couple_potentials = read_from_pkl("potentials_dict_all_nodes.pkl")
     nodes_dict = {}
     for couple in couple_potentials:
         if couple[0] >= unobserved_size:
@@ -203,6 +224,14 @@ def main():
     factor_graph = FactorGraph(nodes_dict, neighbors_dict)
     factor_graph.belief_propagation()
     print(factor_graph)
+    result = factor_graph.inference_values(unobserved_size, all_single_potentials)
+    y_pred_BP = result.idxmax(axis=1).values
+    y_reg_pred = all_single_potentials[[0, 1, 2, 3, 4]].iloc[:250].idxmax(axis=1).values
+    print ("################# BP results ######################")
+    print_results(y_pred_BP, all_single_potentials.iloc[:250]['price'])
+    print("################# reg results ######################")
+    print_results(y_reg_pred, all_single_potentials.iloc[:250]['price'])
+
 
 if __name__ == '__main__':
     main()
