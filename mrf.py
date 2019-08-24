@@ -8,14 +8,22 @@ import statistics
 import numpy
 
 
-def get_neighbors_dict(df):
+def get_neighbors_dict(df, unobserved_size):
     distance_dict1 = {}
-    for i in df.index:
-        for j in df.index:
-            if i < j:
-                distance = math.sqrt(math.pow(df.iloc[i]['lat']-df.iloc[j]['lat'],2)+math.pow(df.iloc[i]['long']-df.iloc[j]['long'],2))
-                if distance < 0.015:
-                    distance_dict1[(i, j)] = distance
+    cluster_labels = pd.Series(df['cluster'])
+    for cluster_label in cluster_labels.unique():
+        current_cluster = df[df.cluster == cluster_label]
+        for i in current_cluster.index:
+            if i >= unobserved_size:
+                break
+            for j in current_cluster.index:
+                if i < j:
+                    distance = math.sqrt(math.pow(df.iloc[i]['lat_un_norm']-df.iloc[j]['lat_un_norm'],2)+math.pow(df.iloc[i]['long_un_norm']-df.iloc[j]['long_un_norm'],2))
+                    if distance < 0.015:
+                        distance_dict1[(i, j)] = distance
+        # if i % 10 == 0:
+        #     print(i)
+        print("finish cluster " + str(cluster_label))
     return distance_dict1
 
 
@@ -25,7 +33,8 @@ def build_potentials(neighbors_dict, df):
         potential_couple_df = pd.DataFrame(index=range(5),columns=range(5))
         for i in range(5):
             for j in range(5):
-                potential_couple_df.at[i,j] = df.iloc[couple[0]][i]*df.iloc[couple[1]][j]*((5-(abs(i-j)))/5)
+                potential_couple_df.at[i,j] = df.iloc[couple[0]][i]*df.iloc[couple[1]][j]*(math.pow(0.5, abs(i - j)))
+                #((5 - (abs(i - j))) / 5)
         couple_dict[couple] = potential_couple_df
     return couple_dict
 

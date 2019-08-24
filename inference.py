@@ -99,10 +99,14 @@ class FactorGraph:
 
     def belief_propagation(self):
         self.initialize_massages()
+        count = 0
         while not self.converge:
+            print("BP iteration Number " + str(count))
+            print(self.converge_value_list)
             self.send_messages()
             self.check_convergence()
             self.update_old()
+            count += 1
         self.update_belief()
 
     def update_belief(self):
@@ -207,30 +211,31 @@ def find_neighbors(couple, couple_potentials, unobserved_size):
 
 
 def main():
-    all_single_potentials = read_from_pkl("single_potentials_all_nodes.pkl")
-    unobserved_size = 250  ## to change
-    couple_potentials = read_from_pkl("potentials_dict_all_nodes.pkl")
+    all_single_potentials = read_from_pkl("single_potentials_all_nodes_lr.pkl")
+    unobserved_size = 1250 ## to change
+    couple_potentials = read_from_pkl("potentials_dict_all_nodes_lr.pkl")
     nodes_dict = {}
-    for couple in couple_potentials:
-        if couple[0] >= unobserved_size:
-            break
-        new_node = Node(couple, couple_potentials[couple] , unobserved_size)
-        nodes_dict[couple] = new_node
     neighbors_dict = {}
+    print (len(couple_potentials))
     for couple in couple_potentials:
         if couple[0] >= unobserved_size:
             break
+        new_node = Node(couple, couple_potentials[couple], unobserved_size)
+        nodes_dict[couple] = new_node
         neighbors_dict[couple] = find_neighbors(couple, couple_potentials, unobserved_size)
+    # for couple in couple_potentials:
+    #     if couple[0] >= unobserved_size:
+    #         break
     factor_graph = FactorGraph(nodes_dict, neighbors_dict)
     factor_graph.belief_propagation()
     print(factor_graph)
     result = factor_graph.inference_values(unobserved_size, all_single_potentials)
     y_pred_BP = result.idxmax(axis=1).values
-    y_reg_pred = all_single_potentials[[0, 1, 2, 3, 4]].iloc[:250].idxmax(axis=1).values
+    y_reg_pred = all_single_potentials[[0, 1, 2, 3, 4]].iloc[:unobserved_size].idxmax(axis=1).values
     print ("################# BP results ######################")
-    print_results(y_pred_BP, all_single_potentials.iloc[:250]['price'])
+    print_results(y_pred_BP, all_single_potentials.iloc[:unobserved_size]['price'])
     print("################# reg results ######################")
-    print_results(y_reg_pred, all_single_potentials.iloc[:250]['price'])
+    print_results(y_reg_pred, all_single_potentials.iloc[:unobserved_size]['price'])
 
 
 if __name__ == '__main__':
