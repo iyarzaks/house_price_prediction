@@ -17,8 +17,9 @@ from sklearn.cluster import KMeans
 
 
 def find_clusters(update_df):
-    location_df = update_df[['long_un_norm','lat_un_norm']]
-    k_means = KMeans(n_clusters=10, random_state=0).fit(location_df)
+    #location_df = update_df[['long_un_norm','lat_un_norm']]
+    fetures_df = update_df.drop(columns=['long_un_norm','lat_un_norm','long','lat','price',0,1,2,3,4])
+    k_means = KMeans(n_clusters=4, random_state=0).fit(fetures_df)
     out = pd.value_counts(pd.Series(k_means.labels_))
     update_df ['cluster'] = pd.Series(k_means.labels_)
     return update_df

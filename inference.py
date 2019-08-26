@@ -124,7 +124,9 @@ class FactorGraph:
     def inference_values(self, unobserved_size, single_potentials_before_belief):
         rows = []
         for i, house in single_potentials_before_belief.iterrows():
-            dict_to_fill = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
+            house_to_dict = house.drop(labels = ['long_un_norm','lat_un_norm','price','old_index','cluster'])
+            dict_to_fill = dict(house_to_dict)
+            # dict_to_fill = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
             if i >= unobserved_size:
                 break
             for couple in self.nodes:
@@ -132,6 +134,9 @@ class FactorGraph:
                     dict_to_fill_vec = self.nodes[couple].final_return_values[i][0]
                     for key, value in zip(dict_to_fill.keys(), dict_to_fill_vec):
                         dict_to_fill[key] = value
+            list_of_values = list(dict_to_fill.values())
+            if all(elem == list_of_values[0] for elem in list_of_values):
+                dict_to_fill = dict(house_to_dict)
             rows.append(dict_to_fill)
         result_of_bp = pd.DataFrame(rows)
         return result_of_bp
@@ -211,27 +216,29 @@ def find_neighbors(couple, couple_potentials, unobserved_size):
 
 
 def main():
-    all_single_potentials = read_from_pkl("single_potentials_all_nodes_lr.pkl")
-    unobserved_size = 1250 ## to change
-    couple_potentials = read_from_pkl("potentials_dict_all_nodes_lr.pkl")
+    all_single_potentials = read_from_pkl("single_potentials_all_nodes_lr_2.pkl")
+    unobserved_size = 500 ## to change
+    couple_potentials = read_from_pkl("potentials_dict_all_nodes_lr_2.pkl")
     nodes_dict = {}
     neighbors_dict = {}
-    print (len(couple_potentials))
     for couple in couple_potentials:
         if couple[0] >= unobserved_size:
             break
         new_node = Node(couple, couple_potentials[couple], unobserved_size)
         nodes_dict[couple] = new_node
         neighbors_dict[couple] = find_neighbors(couple, couple_potentials, unobserved_size)
-    # for couple in couple_potentials:
-    #     if couple[0] >= unobserved_size:
-    #         break
     factor_graph = FactorGraph(nodes_dict, neighbors_dict)
     factor_graph.belief_propagation()
     print(factor_graph)
+    all_res_df = pd.DataFrame()
     result = factor_graph.inference_values(unobserved_size, all_single_potentials)
     y_pred_BP = result.idxmax(axis=1).values
     y_reg_pred = all_single_potentials[[0, 1, 2, 3, 4]].iloc[:unobserved_size].idxmax(axis=1).values
+    all_res_df['BP'] = y_pred_BP
+    all_res_df['reg'] = y_reg_pred
+    all_res_df['true'] = all_single_potentials.iloc[:unobserved_size]['price']
+    diffrence = all_res_df[all_res_df.BP!=all_res_df.reg]
+    print (len(diffrence))
     print ("################# BP results ######################")
     print_results(y_pred_BP, all_single_potentials.iloc[:unobserved_size]['price'])
     print("################# reg results ######################")
