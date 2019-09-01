@@ -15,6 +15,7 @@ import time
 from datetime import timedelta
 from location_clustering import find_clusters
 import math
+import inference
 """
 #removed_features = ['date', 'id']
 # year built to age
@@ -32,16 +33,18 @@ def year_to_bin(year):
 
 
 def price_to_class(price):
-    if price<250000:
+    if price<400000:
         return 0
-    elif price<500000:
+    elif price<800000:
         return 1
-    elif price<750000:
-        return 2
-    elif price<1000000:
-        return 3
     else:
-        return 4
+        return 2
+    # elif price<750000:
+    #     return 2
+    # elif price<1000000:
+    #     return 3
+    # else:
+    #     return 4
 
 
 def prepare_for_model(df):
@@ -106,13 +109,14 @@ def print_results(y_test,y_pred):
     print(accuracy_score(y_test,y_pred))
 
 
-def create_neighbors_dict_and_data(test_split,total_size):
+def create_data(test_split, total_size):
     unobserved_size = math.ceil(test_split * total_size)
     s_time = time.time()
     X_train, X_test, y_train, y_test = data_preprocessing(test_split,total_size)
     X_train_for_model = X_train.drop('long_un_norm', axis=1)
     X_train_for_model = X_train_for_model.drop('lat_un_norm', axis=1)
-    svm_model_linear = LogisticRegressionCV(cv=5,random_state=42, solver='lbfgs',multi_class='multinomial').fit(X_train_for_model, y_train)
+    svm_model_linear = LogisticRegressionCV(cv=5, random_state=42, solver='lbfgs', multi_class='multinomial').fit(X_train_for_model, y_train)
+    #SVC(probability=True, C=1, random_state=42, kernel='linear')
     X_test_for_model = X_test.drop('long_un_norm', axis=1)
     X_test_for_model = X_test_for_model.drop('lat_un_norm', axis=1)
     print_results (y_test,svm_model_linear.predict(X_test_for_model))
@@ -124,29 +128,32 @@ def create_neighbors_dict_and_data(test_split,total_size):
     x_train_with_probs = pd.concat([X_train,y_train], axis=1)
     all_data = pd.concat([x_test_with_probs, x_train_with_probs], sort=True, axis=0)
     all_data = find_clusters(all_data)
-    columns_for_mrf = ['long_un_norm','lat_un_norm',0,1,2,3,4,'price','cluster']
-    all_data = all_data[columns_for_mrf]
+    #columns_for_mrf = ['long_un_norm','lat_un_norm',0,1,2,3,4,'price','cluster']
+    #all_data = all_data[columns_for_mrf]
     all_data['old_index'] = all_data.index
     all_data.index = range(len(all_data))
-    #all_data = find_clusters(all_data)
-    neigh_dict = mrf.get_neighbors_dict(all_data, unobserved_size)
-    write_to_pkl(neigh_dict, 'neighbors_dict_lr_2.pkl')
     write_to_pkl(all_data, 'single_potentials_all_nodes_lr_2.pkl')
-    total = time.time() - s_time
-    str(timedelta(seconds=total))
+    return all_data
 
 
-def create_pairwise_potentials():
-    neigh_dict = read_from_pkl('neighbors_dict_lr_2.pkl')
+def create_pairwise_potentials(neigh_dict,all_data , edges_probabilities={}):
+    #neigh_dict = read_from_pkl('neighbors_dict_lr_2.pkl')
     print (len(neigh_dict))
-    all_data = read_from_pkl('single_potentials_all_nodes_lr_2.pkl')
-    potentials = mrf.build_potentials(neigh_dict, all_data)
-    write_to_pkl(potentials, 'potentials_dict_all_nodes_lr_2.pkl')
+    #all_data = read_from_pkl('single_potentials_all_nodes_lr_2.pkl')
+    potentials = mrf.build_potentials(neigh_dict, all_data , edges_probabilities)
+    #write_to_pkl(potentials, 'potentials_dict_all_nodes_lr_2.pkl')
+    return potentials
 
 
 def main():
-    create_neighbors_dict_and_data(test_split=0.25, total_size=2000)
-    create_pairwise_potentials()
+    test_split = 0.25
+    total_size = 2000
+    all_data = create_data(test_split,total_size)
+    unobserved_size = math.ceil(test_split * total_size)
+    neigh_dict = mrf.get_neighbors_dict(all_data, unobserved_size)
+    write_to_pkl(neigh_dict, 'neighbors_dict_lr_2.pkl')
+    potentials = create_pairwise_potentials(neigh_dict,all_data)
+    inference.inference_graph(all_data,potentials)
 
 
 

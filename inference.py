@@ -1,6 +1,7 @@
 from potentials_creation import read_from_pkl,print_results
 import numpy as np
 import pandas as pd
+from sklearn.metrics import accuracy_score
 
 
 def find_common(couple1, couple2):
@@ -124,7 +125,7 @@ class FactorGraph:
     def inference_values(self, unobserved_size, single_potentials_before_belief):
         rows = []
         for i, house in single_potentials_before_belief.iterrows():
-            house_to_dict = house.drop(labels = ['long_un_norm','lat_un_norm','price','old_index','cluster'])
+            house_to_dict = house.filter(items=[0,1,2,3,4])
             dict_to_fill = dict(house_to_dict)
             # dict_to_fill = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
             if i >= unobserved_size:
@@ -215,10 +216,9 @@ def find_neighbors(couple, couple_potentials, unobserved_size):
     return neigh_list
 
 
-def main():
-    all_single_potentials = read_from_pkl("single_potentials_all_nodes_lr_2.pkl")
-    unobserved_size = 500 ## to change
-    couple_potentials = read_from_pkl("potentials_dict_all_nodes_lr_2.pkl")
+def inference_graph(all_single_potentials,couple_potentials , unobserved_size):
+    #all_single_potentials = read_from_pkl("single_potentials_all_nodes_lr_2.pkl")
+    #couple_potentials = read_from_pkl("potentials_dict_all_nodes_lr_2.pkl")
     nodes_dict = {}
     neighbors_dict = {}
     for couple in couple_potentials:
@@ -238,12 +238,17 @@ def main():
     all_res_df['reg'] = y_reg_pred
     all_res_df['true'] = all_single_potentials.iloc[:unobserved_size]['price']
     diffrence = all_res_df[all_res_df.BP!=all_res_df.reg]
-    print (len(diffrence))
-    print ("################# BP results ######################")
-    print_results(y_pred_BP, all_single_potentials.iloc[:unobserved_size]['price'])
-    print("################# reg results ######################")
-    print_results(y_reg_pred, all_single_potentials.iloc[:unobserved_size]['price'])
+    # print (len(diffrence))
+    # print ("################# BP results ######################")
+    # print_results(y_pred_BP, all_single_potentials.iloc[:unobserved_size]['price'])
+    # print("################# reg results ######################")
+    # print_results
+    result_to_return = {
+        'BP': accuracy_score(y_pred_BP,all_single_potentials.iloc[:unobserved_size]['price']),
+        'regular': accuracy_score(y_reg_pred,all_single_potentials.iloc[:unobserved_size]['price'])
+    }
+    return result_to_return
 
 
 if __name__ == '__main__':
-    main()
+    inference_graph()
